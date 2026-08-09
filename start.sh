@@ -49,12 +49,16 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
 rm -f /tmp/ssl.cnf
 
 # ── Connection info (incl. cert pin for clients) ───────────────────
-PIN_SHA256=$(openssl x509 -noout -fingerprint -sha256 -in /etc/web/a.crt | cut -d= -f2)
+# pinSHA256 alone is not enough: Hysteria only adds a VerifyPeerCertificate
+# callback; self-signed still needs insecure: true or the handshake fails with
+# "x509: certificate signed by unknown authority" (same as Hi_Hysteria).
+PIN_SHA256=$(openssl x509 -noout -fingerprint -sha256 -in /etc/web/a.crt 2>/dev/null | sed 's/^.*=//')
 echo "============================================"
 echo " R_ID      : ${R_ID}"
 echo " PASSWORD  : ${PASSWORD}"
 echo " DOMAIN    : ${DOMAIN}"
 echo " pinSHA256 : ${PIN_SHA256}"
+echo " client tls: insecure: true + pinSHA256 (required for self-signed)"
 echo "============================================"
 
 # ── Start backend in a non-blocking retry worker ───────────────────
