@@ -63,6 +63,10 @@ class StartupRequirements(unittest.TestCase):
         self.assertIn('R_ID="${R_ID:-$(generate_uuid)}"', self.script)
         self.assertIn('PASSWORD="${PASSWORD:-$(generate_uuid)}"', self.script)
 
+    def test_prints_certificate_pin_sha256(self):
+        self.assertIn("pinSHA256", self.script)
+        self.assertIn("openssl x509 -noout -fingerprint -sha256", self.script)
+
 
 if __name__ == "__main__":
     unittest.main()

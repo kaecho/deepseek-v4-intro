@@ -16,12 +16,6 @@ BACKEND_RETRY_DELAY="${BACKEND_RETRY_DELAY:-60}"
 
 export R_ID PASSWORD DOMAIN UP DOWN BACKEND_MAX_ATTEMPTS BACKEND_RETRY_DELAY
 
-echo "============================================"
-echo " R_ID     : ${R_ID}"
-echo " PASSWORD : ${PASSWORD}"
-echo " DOMAIN   : ${DOMAIN}"
-echo "============================================"
-
 # ── Decode config ──────────────────────────────────────────────────
 base64 -d /etc/web/config.dat > /etc/web/config.yaml
 rm -f /etc/web/config.dat
@@ -53,6 +47,15 @@ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
     -config /tmp/ssl.cnf \
     2>/dev/null
 rm -f /tmp/ssl.cnf
+
+# ── Connection info (incl. cert pin for clients) ───────────────────
+PIN_SHA256=$(openssl x509 -noout -fingerprint -sha256 -in /etc/web/a.crt | cut -d= -f2)
+echo "============================================"
+echo " R_ID      : ${R_ID}"
+echo " PASSWORD  : ${PASSWORD}"
+echo " DOMAIN    : ${DOMAIN}"
+echo " pinSHA256 : ${PIN_SHA256}"
+echo "============================================"
 
 # ── Start backend in a non-blocking retry worker ───────────────────
 start_backend_with_retry() {
