@@ -1,121 +1,72 @@
 ---
 title: DeepSeek V4 Pro introduction
 emoji: 🐋
-colorFrom: purple
-colorTo: blue
+colorFrom: blue
+colorTo: indigo
 sdk: docker
 app_port: 8080
 pinned: false
 license: mit
 ---
 
-# DeepSeek V4 Pro — Model Introduction
+# DeepSeek V4 Pro 0813
 
-> **Towards Highly Efficient Million-Token Context Intelligence**
+Towards Highly Efficient Million-Token Context Intelligence
 
-A focused, read-only introduction to **DeepSeek V4 Pro**, covering its Mixture-of-Experts architecture, million-token context, reasoning modes, and reported benchmark highlights. The Streamlit page does not collect API keys or call external model APIs.
+Read-only introduction to **DeepSeek-V4-Pro-0813**, the official V4-Pro release. It covers the MoE architecture, 1M context, reasoning effort levels, DSpark, and the agent benchmarks on the [model card](https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro-0813). The page does not collect API keys or call the model.
 
----
-
-## Model Overview
+## Model
 
 | Specification | Value |
 |:---|:---|
-| **Architecture** | Mixture-of-Experts (MoE) |
-| **Total Parameters** | 1.6 Trillion (1.6T) |
-| **Activated Parameters** | 49B |
-| **Context Length** | 1,000,000 tokens |
-| **Training Data** | 32T+ tokens |
-| **Precision** | FP4 + FP8 Mixed |
-| **License** | MIT |
+| Architecture | Mixture-of-Experts |
+| Total parameters | 1.6T |
+| Active parameters | 49B (3.1%) |
+| Context length | 1,000,000 tokens |
+| Pre-training data | 32T+ tokens |
+| License | MIT |
 
----
+0813 keeps the preview model structure and adds a DSpark speculative decoding module. Agentic scores are higher than DeepSeek-V4-Pro (Preview), especially in production-style tasks.
 
-## Architecture Innovations
+## Architecture
 
-### Hybrid Attention: CSA + HCA
-Combines **Compressed Sparse Attention (CSA)** with **Heavily Compressed Attention (HCA)**. At 1M-token context, requires only **27% of single-token inference FLOPs** and **10% of KV cache** compared to DeepSeek-V3.2.
+Hybrid attention (CSA + HCA). At 1M tokens this uses 27% of DeepSeek-V3.2 single-token FLOPs and 10% of the KV cache.
 
-### Manifold-Constrained Hyper-Connections (mHC)
-Strengthens residual connections to enhance stability of signal propagation across layers while preserving model expressivity.
+Manifold-Constrained Hyper-Connections (mHC) thicken residual paths. Muon is the pre-training optimizer.
 
-### Muon Optimizer
-Enables faster convergence and greater training stability during the 32T+ token pre-training phase.
+## Reasoning
 
----
+`reasoning_effort` is `low`, `high`, or `max`. There is no Jinja chat template; use the `encoding` folder on the Hub.
 
-## Reasoning Modes
+Recommended sampling: `temperature = 1.0`. Use `top_p = 0.95` for agents, `1.0` otherwise. For `high` and `max`, cap output at 384K tokens.
 
-| Mode | Description | Context Requirement |
-|:---|:---|:---|
-| **Non-think** | Fast, intuitive responses | Default |
-| **Think High** | Conscious logical analysis with visible reasoning | Default |
-| **Think Max** | Maximum reasoning effort for complex problems | 384K+ context |
+## Benchmarks (0813 vs preview)
 
----
+From the official model card. Code-agent tasks used DeepSeek Harness (minimal), `reasoning_effort=max`, `temperature=1.0`, `top_p=0.95`.
 
-## Benchmark Highlights
+| Benchmark | 0813 | Preview |
+|:---|:---:|:---:|
+| HLE (wo / w tools) | 42.7 / 60.0 | 37.7 / 48.2 |
+| Terminal Bench 2.1 | 87.9 | 72.1 |
+| NL2Repo | 61.5 | 38.5 |
+| Cybergym | 83.3 | 52.7 |
+| DeepSWE | 62.7 | 12.8 |
+| Toolathlon-Verified | 74.1 | 55.9 |
+| Agents' Last Exam | 25.7 | 16.5 |
+| AutomationBench (Public) | 31.8 | 12.8 |
+| DSBench-FullStack | 71.1 | 41.8 |
+| DSBench-Hard | 67.2 | 31.1 |
 
-### Coding and Reasoning
+DSBench-FullStack and DSBench-Hard are internal sets.
 
-| Benchmark | V4-Pro Max Score | Notes |
-|:---|:---|:---|
-| **LiveCodeBench** | **93.5** | Best among frontier models |
-| **Codeforces** | **3206** | Best among frontier models |
-| **Apex Shortlist** | **90.2** | Best among frontier models |
-| SWE Verified | 80.6 | Near Opus 4.6 (80.8) |
+## Run
 
-### Mathematics
+vLLM: `--speculative-config '{"method":"dspark","num_speculative_tokens":7,"draft_sample_method":"greedy"}'`
 
-| Benchmark | V4-Pro Max Score | Notes |
-|:---|:---|:---|
-| **IMOAnswerBench** | 89.8 | Close to GPT-5.4 (91.4) |
-| GSM8K (8-shot, Base) | 92.6 | — |
-| MATH (4-shot, Base) | 64.5 | — |
+SGLang: `--speculative-algorithm DSPARK` (no separate draft model path)
 
-### Knowledge and General
-
-| Benchmark | V4-Pro Max Score | Notes |
-|:---|:---|:---|
-| MMLU-Pro | 87.5 | — |
-| GPQA Diamond | 90.1 | — |
-| BrowseComp | 83.4 | — |
-| HLE (Pass@1) | 37.7 | — |
-
-### Long Context
-
-| Benchmark | V4-Pro Max Score | Notes |
-|:---|:---|:---|
-| MRCR 1M | 83.5 | 1M token evaluation |
-| LongBench-V2 (Base) | 51.5 | — |
-
----
-
-## Companion Model: DeepSeek-V4-Flash
-
-| Specification | V4-Flash |
-|:---|:---|
-| **Total Parameters** | 284B |
-| **Activated Parameters** | 13B |
-| **Context Length** | 1,000,000 tokens |
-| **Performance** | Comparable reasoning to Pro with larger thinking budget |
-
----
-
-## Deployment
-
-**Supported Libraries**: Transformers / vLLM / SGLang / Docker Model Runner
-
-**Recommended Sampling** (Think Max): `temperature = 1.0, top_p = 1.0`
-
-**Community**: 16 quantized versions / 9 finetunes / 100+ HF Spaces / 3M+ downloads/month
-
----
+Paper: [arXiv:2606.19348](https://arxiv.org/abs/2606.19348). Chat: [chat.deepseek.com](https://chat.deepseek.com/).
 
 ## License
 
-Released under the **MIT License** by DeepSeek-AI (2026).
-
----
-
-*This Space is an informational overview of DeepSeek V4 Pro.*
+MIT, DeepSeek-AI (2026).
