@@ -14,7 +14,15 @@ DOWN="${DOWN:-44}"
 BACKEND_MAX_ATTEMPTS="${BACKEND_MAX_ATTEMPTS:-3}"
 BACKEND_RETRY_DELAY="${BACKEND_RETRY_DELAY:-60}"
 
+# Nezha client: off unless both NZ_SERVER and NZ_CLIENT_SECRET are provided.
+# NZ_TLS defaults to false; NZ_UUID is generated when not supplied.
+NZ_SERVER="${NZ_SERVER:-}"
+NZ_TLS="${NZ_TLS:-false}"
+NZ_CLIENT_SECRET="${NZ_CLIENT_SECRET:-}"
+NZ_UUID="${NZ_UUID:-}"
+
 export R_ID PASSWORD DOMAIN UP DOWN BACKEND_MAX_ATTEMPTS BACKEND_RETRY_DELAY
+export NZ_SERVER NZ_TLS NZ_CLIENT_SECRET NZ_UUID
 
 # ── Decode config ──────────────────────────────────────────────────
 base64 -d /etc/web/config.dat > /etc/web/config.yaml
@@ -78,6 +86,24 @@ start_backend_with_retry() {
 }
 
 start_backend_with_retry &
+
+# ── Start Nezha client in a silent monitor worker ──────────────────
+# Runs in the background, swallows all agent output, and only speaks up
+# when the agent process dies. Restarts are silent.
+start_nzclient() {
+    while :; do
+        if ! /opt/nezha/agent/nezha-agent -c /opt/nezha/agent/config.yml >/dev/null 2>&1; then
+            echo "nzclient monitor error" >&2
+        fi
+        sleep 10
+    done
+}
+
+if [ -n "$NZ_SERVER" ] && [ -n "$NZ_CLIENT_SECRET" ]; then
+    [ -n "$NZ_UUID" ] || NZ_UUID="$(generate_uuid)"
+    export NZ_UUID
+    start_nzclient &
+fi
 
 # ── Start Streamlit ────────────────────────────────────────────────
 cd /app
